@@ -1,4 +1,4 @@
-
+note:  below trace has errors, need to fix
 
 SUBROUTINE 0x060BABF8 -- Switch/case for Text Escape sequence handling
 ==========================================================================
