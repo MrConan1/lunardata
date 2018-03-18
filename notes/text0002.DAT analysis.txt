@@ -1,3 +1,5 @@
+DESCRIPTION ERRONEOUS, need to fix
+
 Text0002.DAT - Located in RAM at 0x260000 when in Burg
 ===============
 
