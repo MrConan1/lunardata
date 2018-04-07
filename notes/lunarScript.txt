@@ -1,0 +1,154 @@
+A given Textxxxx.DAT is copied directly into memory location 0x260000 when the corresponding scene is loaded.
+
+The first 0x800 bytes of these files consist of a sequence of 16-bit pointers.  Each pointer points to the beginning of a sequence of actions that should occur.  These sequences occur later on in the text file and may in turn contain pointers that jump to other sections of the file.  If a 16-bit pointer is 0x0000, obviously it is not used by the game.
+
+When talking to a person or when an event occurs, a value is read from someplace (i havent bothered to locate the origin 
+of this because I assume it is not relevant for translating, its more game-mechanic related).
+This value is then multiplied by 2 to obtain the offset into Textxxxx.DAT for the Top-Level pointer.
+This happens around 0x060BA1FC when running the code.
+
+The value of the pointer is then read, and 0x260000 is added to it to obtain the offset into ram of a particular sequence 
+of events to be executed.
+
+Sequence Format:
+Subroutine, arguments, Subroutine, arguments, Final Subroutine, arguments
+At the end of each executed subroutine, a global variable is checked to see if it is the final one to be run.
+
+Sequences contain subroutines, the addresses of which are hard-coded at locations 060F1D10 to 060f1eff
+They are referenced by a 16-bit number.  Here are a few:
+Hex     x4    Address
+0x0003 0x000C - 060BB830 -- Subroutine usually called 1st.
+0x0002 0x0008 - 060BA9C0 -- Text Drawing subroutine
+0x000B 0x002C - 060BBB1C -- Subroutine called often, before text draw.  Has variable # of arguments
+0x0005 0x0014 - 060BB92A -- Subroutine usually called last
+
+0x0007 0x001C - 060BB986 <-- select between 2 options
+0x0009 0x0024 - 060BBAA0
+0x000A 0x0028 - 060BBADA
+0x000C 0x0030 - 060BBB94
+0x0052 0x0148 - 060BD8D4
+0x0053 0x014C - 060BD92C
+0x0054 0x0150 - 060BD96A   <-- voice playback?
+0x005A 0x0168 - 060BD56E
+
+Hex       Aruments
+0x0003    1 16-bit offset of where to go to next.  This offset is multipled by 4 and added to 0x260000
+0x000B    3 [Technically any # of args and is terminated by 0000, but i always see 3 so far]
+            Example of sequence when talking next to man next to bridge in Burg
+            #1: 0133, 0132, 0130, 012F, 012E
+            #2: 0020, 000B, 0009, 0007, 0003       <-- Stored in r5 at 0x060B7B16
+            #3: Always 0000 to signify end of arguments
+            Last one has an offset of where to jump to next in the file. 0x012E*2 = 0x025C
+            Value at 0x025C in the file is 0x26E6; 0x26E6*2 = 4DCC, the next offset
+What tells the program when to interpret ARG#1 as a jump?
+
+0x0002    Variable.  Text data and text escape codes are located here.  Ends with the value 0xFFFF.
+Esc
+Code   Branch Target Address
+===============================
+F0xx   0x60BAE6E - 
+F080   0x60BAE6E - Not sure how this could ever execute the way the code is written.
+F1xx   0x60BAE6E - 
+F4xx   0x60BAE6E - 
+F5xx   0x60BAE6E -  
+F6xx   0x60BAE6E - 
+F8xx   0x60BAE14 - 
+F9xx   0x60BADAA - Space, 2nd byte is # pixels
+FAxx   0x60BAE3A - Character Portrait
+FBxx   0x60BAE54 - 
+FCxx   0x60BADC4 - 
+FFxx   0x60BAC20 - Second byte of FF is: 01-next box, 02 newline, 03 start new box, FF end of dialog
+RTS if no match with the above codes
+
+
+0x0005    No argument.  Sets global end of script flag if 0x060F95A0 was previously set to 0.  Otherwise does something           else.  Have not examine what that something else is yet, havnet run across any usage yet.
+
+
+
+
+Global Variables
+=================
+0x060f9568 - Global constant 0x260000, the start of the script in RAM.
+
+0x060F956C - a global pointer to the location in ram that the 16-bit subroutine/argument script values are being read from.  Calling the subroutines autoincrements this global pointer accordingly.
+
+0x060F95A0 - Global value that gets read if subroutine 0x0005 is called.  If the value is zero, then 0x060F95A8
+             is set equal to 1 (true), otherwise something else is executed (not yet decoded).
+
+0x060F95A4 - Holds Hex identfier of currently executing subroutine.
+
+0x060F95A8 - global boolean variable.  When 0, the script sequence is not finished.  When 1 (or any non-zero value for that matter), it is finished.
+
+
+0x060F9500
+60F95A2
+0x60F9534
+060F95BA
+060F95BC
+060F9546
+60F9548
+
+=================================
+Subroutine  060BB830 (Called 1st) - Updates script pointer using next 16-bit argument
+=================================
+Increment script pointer (0x60F956C) by 2 bytes (1 Word location)
+Read the value at that location (Val#1a), which is a Word offset.  Then multiply by 2 (Val#1b) to get a Byte offset.
+Add 0x260000 to this number (Val#1b) to obtain the RAM byte offset.
+Read the 16-bit value at this new RAM location. (Val#2a)
+
+IF the value (Val#2a) is 0{
+   ???
+    ?Any reason to get here other than an error?
+   ???
+}
+ELSE{
+   Take the 16-bit value (Val#2a) and multiply by 2 (Val#2b) to get a byte offset.
+   Add 260000 to Val#2b to get a RAM byte offset. Val#3
+   Store (Val #3) at 0x60F956C
+   Store Val#1a, the original word offset, at address 0x60F95A2 <-- not sure why
+   The script pointer is now updated to Val#3
+   Return
+}
+==================================
+
+
+
+==================================
+Subroutine  060BBB1C (Called a lot)
+==================================
+Increment script pointer (0x60F956C) by 2 bytes (1 Word location)
+
+L1: Increment script pointer (0x60F956C) by 2 bytes (1 Word location)
+Read the value at this script location (Script_1).  This is put in r2.
+IF(Script_1 is not 0){
+   Goto L1
+}
+ELSE{
+    It is 0
+    Increment script pointer (0x60F956C) by 2 bytes (1 Word location)
+    Return the # of times the loop occurred
+
+}
+
+A count was kept of the number of times SCRIPT_1 was non-zero
+Does other stuff in RAM at 21F800
+
+
+???
+4CF6 contains 0x012E
+0x12E * 2 = 0x25C
+0x25C contains 0x26E6
+0x26E6 * 2 = 4DCC
+???
+
+
+==================================
+Subroutine  060BA9C0 (Text Draw)
+==================================
+
+
+
+
+
+
+
