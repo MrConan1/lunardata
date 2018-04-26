@@ -19,28 +19,40 @@ They are referenced by a 16-bit number.  Here are a few:
 Hex     x4    Address
 0x0003 0x000C - 060BB830 -- Subroutine usually called 1st.
 0x0002 0x0008 - 060BA9C0 -- Text Drawing subroutine
-0x000B 0x002C - 060BBB1C -- Subroutine called often, before text draw.  Has variable # of arguments
+0x000B 0x002C - 060BBB1C -- Optional Jump Subroutine
 0x0005 0x0014 - 060BB92A -- Subroutine usually called last
 
-0x0007 0x001C - 060BB986 <-- select between 2 options
-0x0009 0x0024 - 060BBAA0
-0x000A 0x0028 - 060BBADA
+0x0007 0x001C - 060BB986 <-- select between 2 options.]
+0x0009 0x0024 - 060BBAA0 <-- Plays a role in altering text output selection by setting a bit in the 0x21F8xx region.
+0x000A 0x0028 - 060BBADA <-- Plays a role in altering text output selection by clearing a bit in the 0x21F8xx region.
 0x000C 0x0030 - 060BBB94
 0x0052 0x0148 - 060BD8D4
 0x0053 0x014C - 060BD92C
-0x0054 0x0150 - 060BD96A   <-- voice playback?
+0x0054 0x0150 - 060BD96A   <-- voice playback? Yabause crashes on this.
 0x005A 0x0168 - 060BD56E
 
 Hex       Aruments
 0x0003    1 16-bit offset of where to go to next.  This offset is multipled by 4 and added to 0x260000
+
+
 0x000B    3 [Technically any # of args and is terminated by 0000, but i always see 3 so far]
+            Argument #1:  Word Offset to the offset value to potentially jump to.
+                          Place to jump: (Offset Byte Address = 0x260000 + 2*Arg1_WdOffset.  
+                          Now Read the wd at this address, mutiply by 2 and add to 0x260000.  This is where you jump to!)
+            Argument #2:  Bit offset from 0x21F800 to check (1 = jump file pointer to word offset, 0 = dont jump.  
+                          File pointer will move onto the subroutine that follows this one)
+            Argument #3:  0000  (Null terminator of subroutine)
+
             Example of sequence when talking next to man next to bridge in Burg
             #1: 0133, 0132, 0130, 012F, 012E
-            #2: 0020, 000B, 0009, 0007, 0003       <-- Stored in r5 at 0x060B7B16
+            #2: 0020, 000B, 0009, 0007, 0003
             #3: Always 0000 to signify end of arguments
             Last one has an offset of where to jump to next in the file. 0x012E*2 = 0x025C
             Value at 0x025C in the file is 0x26E6; 0x26E6*2 = 4DCC, the next offset
-What tells the program when to interpret ARG#1 as a jump?
+
+Note: The 0x21F8xx region appears to hold state data for the current scene.
+
+
 
 0x0002    Variable.  Text data and text escape codes are located here.  Ends with the value 0xFFFF.
 Esc
@@ -61,9 +73,24 @@ FFxx   0x60BAC20 - Second byte of FF is: 01-next box, 02 newline, 03 start new b
 RTS if no match with the above codes
 
 
-0x0005    No argument.  Sets global end of script flag if 0x060F95A0 was previously set to 0.  Otherwise does something           else.  Have not examine what that something else is yet, havnet run across any usage yet.
+0x0005    No argument.  Sets global end of script flag if 0x060F95A0 was previously set to 0.  Otherwise does something            else.  Havnet run across any actual usage yet, but by plugging in some values with the yabause debugger,
+         It will perform the following:  
+         (*0x060F95A0)--;
+         *0x060F956C = 0x060F9570 + (*0x060F95A0)*4
+         *0x060F95A2 = 0x060F9590 + (*0x060F95A0)*2 
+         Not sure entirely how this works
+         Looks like it updates the file pointer and does something with whatever is at 0x060F95A2
+         If called repeatedly 0x060F95A0 eventually becomes 0 and then the rts at 060BB938 is called which results
+         in the end of the script.
 
 
+0x0009   2 [Technically any # of args and is terminated by 0000, but i always see 3 so far] ???
+         Argument #1:  Bit offset from 0x21F800 to set       ???
+         Argument #2:  0000  (Null terminator of subroutine) ???
+
+0x000A   2 [Technically any # of args and is terminated by 0000, but i always see 3 so far]
+         Argument #1:  Bit offset from 0x21F800 to clear
+         Argument #2:  0000  (Null terminator of subroutine)
 
 
 Global Variables
@@ -131,15 +158,23 @@ ELSE{
 }
 
 A count was kept of the number of times SCRIPT_1 was non-zero
-Does other stuff in RAM at 21F800
 
+Next the second parameter, the bit offset, is taken and divided by 8 (using integer division) to obtain a byte offset.
+This byte offset is added to 0x21F800 to obtain an address of interest.
+One byte is read from this location and stored in r2.
+Next the second parameter is again divided by 8, however the remainder is determined and stored in r0
+The value stored in r2 is then shifted right by the value of the remainder.  This leaves the bit of interest in bit 0.
+The bit of interest is tested against 0x1. If it equals 1, then the file pointer proceeds to the
+one given by parameter #1, otherwise, the file pointer advances 1 wd in the script file.
+If using the word offset, place to jump is calculated in the following manner: 
+(Offset Byte Address = 0x26000 + 2*Arg1_WdOffset.  Then read the wd at this address, mutiply by 2 and add to 0x260000.  This is where you jump to!)
 
-???
-4CF6 contains 0x012E
-0x12E * 2 = 0x25C
-0x25C contains 0x26E6
-0x26E6 * 2 = 4DCC
-???
+Example:
+Parameter #1 holds 0x12E
+0x12E * 2 = 0x25C + 0x260000 = 0x26025C
+0x2625C contains 0x26E6
+0x26E6 * 2 + 0x260000 = 264DCC
+
 
 
 ==================================
