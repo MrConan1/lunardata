@@ -1,0 +1,364 @@
+Text0002.DAT - Located in RAM at 0x260000 when in Burg
+===============
+
+
+Breakpoint Strategy
+=====================
+0x060BA2A0 <-- R0 holds file read address
+0x060BA2A2 <-- R0 holds subroutine hex identifier
+0x060BA2A8 <-- R3 holds address of subroutine.
+
+
+Everything below is in text0002.dat unless noted otherwise
+
+
+Dyne monument area
+-----------------------
+Enter - 0x26, 3E, 2A, 5, B
+Exit  - B, C, 26, 3E, 2A, 5
+enter the area (automatically called)          <-- text0002.dat
+on dyne screen entrance / exit (multiple times) <-- text0001.dat
+dyne monument                                  <-- text0001.dat
+on entrance to burg (automatically called)      <-- text0001.dat
+
+
+Exiting Burg Early
+=====================
+B, 2, 5
+
+
+Talking to ramus at the exit of Burg
+--------------------
+???
+
+
+Talking to Person Next to Bridge in Burg
+=========================================
+File read address:         261FB0
+Subroutine hex identifier: 0003
+Address of subroutine    : 60BB830
+
+File read address:         264CD4
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         264CDC
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         264CE4
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         264CEC
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         264CF4
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         264DCC
+Subroutine hex identifier: 0002
+Address of subroutine    : 60BA9C0
+
+File read address:         264E7A
+Subroutine hex identifier: 0005
+Address of subroutine    : 60BB92A
+
+
+
+
+Old Woman next to person next to bridge in burg
+======================================================
+File read address:         261FB4
+Subroutine hex identifier: 0003
+Address of subroutine    : 60BB830
+
+File read address:         265336
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         26533E
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         265346
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         26534E
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         265356
+Subroutine hex identifier: 0002
+Address of subroutine    : 60BA9C0
+
+File read address:         265418
+Subroutine hex identifier: 0009
+Address of subroutine    : 60BBAA0
+
+File read address:         26541E
+Subroutine hex identifier: 0005
+Address of subroutine    : 60BB92A
+
+On the 2nd time through, a different sequence follows due to the 0009 subroutine
+
+
+
+Chickens
+============
+3,B,2,9,5,A
+
+
+Moving Girl next to Altena Statue
+================================
+3, B, C, 2, 9, 5, A are used
+
+Standing girl next to Altena Statue
+================================
+3, B, 2, 9, A, and 5 are used
+
+Grey Haired man to left of standing girl
+============================================
+3, B, 2, 9, 5
+
+Blue Haired boy at bottom right
+======================================
+3, B, 52, 2, 7 (choice), (Up choice 2, 5A, 53, 54 CRASH)
+                         (Down choice 2, 5A, 53, 54 CRASH)
+
+File read address:         261FAC
+Subroutine hex identifier: 0003
+Address of subroutine    : 60BB830
+
+File read address:         2644DA
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         2644E2
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         2644EA
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         2644F2
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         264606
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         26460E
+Subroutine hex identifier: 0052
+Address of subroutine    : 60BD8D4
+
+File read address:         264612
+Subroutine hex identifier: 0002
+Address of subroutine    : 60BA9C0
+
+Text writes
+
+File read address:         2646AA
+Subroutine hex identifier: 0007
+Address of subroutine    : 60BB986
+
+Theory: 0007 hex identifier, param#1 is jump location. 0000 is terminator.
+Then what follows is the top option ending in 0xFFFF followed by the bottom option ending in FFFF.
+If the bottom is selected, then jump, otherwise continue onward in execution.
+
+0007 011B 0000
+0399 0189 01FD 0132 014E 0166 006F 018C F90A 001D 001C 0012 FFFF
+01D8 034A 00CE 000D 0180 01CF 0145 0199 0012 0023 0014 0062 0134 FFFF
+0x264E06 0002 ...
+
+=========
+Selection
+=========
+
+File read address:         264808 (Bottom selection)      OR 2646E6 (Top selection)
+Subroutine hex identifier: 0002
+Address of subroutine    : 60BA9C0
+
+File read address:         2648BC                              264792
+Subroutine hex identifier: 005A
+Address of subroutine    : 60BD56E
+Data:  005A 6401
+
+
+File read address:         2648C0                               264796
+Subroutine hex identifier: 0053
+Address of subroutine    : 60BD92C
+No parameters
+
+File read address:         2648C2                                 264798
+Subroutine hex identifier: 0054
+Address of subroutine    : 60BD96A
+Data 0054 005A FB01   <-- Sings a song.
+
+HANGS
+
+
+Bottom left blue haired girl
+===============================
+3, B, 2, 9, 5, A, C (C shows up 2nd time and later)
+
+
+--When talking to her the 2nd time--
+File read address:         262C58
+Subroutine hex identifier: 000C
+Address of subroutine    : 60BBB94
+
+Data at 262C58:
+262C58  000C
+262C5A  00CC
+262C5C  02C2
+262C5E  0000
+
+262C60  0002  (Text)
+
+
+Green Haired Man at entrance to Burg
+==========================================
+3, B, 2, 9, 5
+
+
+
+Altena Statue
+======================
+File read address:         260AF4
+Subroutine hex identifier: 002F
+Address of subroutine    : 60BD3BA   <-- Not decoded
+
+Green Flash
+
+File read address:         260AF6
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         260AFE
+Subroutine hex identifier: 000B
+Address of subroutine    : 60BBB1C
+
+File read address:         265346
+Subroutine hex identifier: 000C
+Address of subroutine    : 60BBB94   <-- Not decoded
+
+File read address:         26CD28
+Subroutine hex identifier: 0005
+Address of subroutine    : 60BB92A
+
+
+
+Walking on Bridge toward alex's home (automatically called when you walk on it)
+======================================= 
+B, 5
+
+
+Shed (automatically called on entering or leaving)
+================================
+0x27, 0x47, 0x45, 0x5
+
+
+Cow in shed
+============
+0x31, 0x38, 0x32, 0x2, 0x5
+
+
+
+Old man next to alex's home
+-----------------------------
+3, B, 2, 5
+
+
+==========
+= Houses =
+==========
+Homes have enter/exit events.  Not sure what they do, maybe animation plus initialization of people?
+
+Bottom Left House
+=======================
+0x006C, 0x1B56 enter
+0x006E, 0x1B64 exit 
+
+1st floor woman - 0x00CE, 0x1FCC
+1st floor man - 0x00CC, 0x1FC8
+2nd floor yellow boy -- 0x00D2, 0x1FD4
+2nd floor purple hair girl -- 0x00D0, 0x1FD0
+
+
+
+2nd House
+=======================
+0x68, 0x1B3A enter
+0x6A, 0x1B48 exit 
+
+House Chicken - 0x00E8, 0x2000
+1st floor old woman on right - 0x00F6, 0x2008
+1st floor old man - 0x00D8, 0x1FE0
+2nd floor treasure chest does not hit the breakpoint. Red chest is one of those cant open till later.  Probably a hardcoded Nall text somewhere.
+2nd floor cat 0x00E0, 0x1FF0
+2nd floor Ramus - 0x00DA, 0x1FE4
+
+
+Weapons shop
+==============================
+0x0074, 0x1B8E enter
+0x0076, 0x1B9C exit
+
+Shop guy - 0x00C4, 0x1FB8
+Rooster - 0x00EA, 0x2000
+2nd floor man 0x00DE, 0x1FEC
+
+
+
+Potion Shop
+==========================
+0x0078 enter, 0x1BAA
+0x007A exit, 0x1BB8
+
+Shop guy - 0x002A, 0x0B8C
+Cat - 0x00E6, 0x1FFC
+Girl 0x00F4, 0x2004
+
+
+Far House on right
+----------------------
+0x0070 enter, 0x1B72
+0x0072,exit, 0x1B80
+Cat - 0x00E4, 0x1FF8
+Boy - 0x00D4, 0x1FD8
+
+
+Entering lake area (auto)
+====================
+0x000A, 0x09BC                                    <-- text0002.dat
+0x0028, 0x0A52  (called a bunch of times)         <-- text0001.dat
+Arrive at water - 0x002C, 0x133A (bunch of times) <-- text0001.dat
+0x000A, 0x093C exiting lake into burg             <-- text0001.dat
+
+
+
+Alex's home
+=================
+Enter, 27,47,45,5 (multiple)
+Exit, 5, 7, 47, 45, 5
+
+Mom - 0x0084, 0x1DCa ; 0x00C8, 0x01FC0 
+Dad - First time -- 1F  (get knife and other items) , 25, 41, 9, 5  ... 21 on 2nd
+Luna's Bed -     3,B,5
+Luna's dresser - 0x0032, 0x0B90
+
+Fireplace - 0x0084, 0x1DCA
+
+UPSTAIRS CHESTS IN CW ORDER - These all seem to be 0x0B coded events of some sort
+===============================
+0x0644, 0xCB40
+0x0642, 0xCB2C
+0x0640, 0xCB18
+0x0646, 0xCB54
+
