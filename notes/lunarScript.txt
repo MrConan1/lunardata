@@ -17,41 +17,30 @@ At the end of each executed subroutine, a global variable is checked to see if i
 Sequences contain subroutines, the addresses of which are hard-coded at locations 060F1D10 to 060f1eff
 They are referenced by a 16-bit number.  Here are a few:
 Hex     x4    Address
-0x0003 0x000C - 060BB830 -- Subroutine usually called 1st.
-0x0002 0x0008 - 060BA9C0 -- Text Drawing subroutine
-0x000B 0x002C - 060BBB1C -- Optional Jump Subroutine
-0x0005 0x0014 - 060BB92A -- Subroutine usually called last
-
-0x0007 0x001C - 060BB986 <-- select between 2 options.]
+0x0002 0x0008 - 060BA9C0 <-- Text Drawing subroutine
+0x0003 0x000C - 060BB830 <-- Unconditional Jump in Script File
+0x0005 0x0014 - 060BB92A <-- Subroutine usually called last.  Seems to signify end of the current script sequence read.
+0x0007 0x001C - 060BB986 <-- Select between 2 options.
 0x0009 0x0024 - 060BBAA0 <-- Plays a role in altering text output selection by setting a bit in the 0x21F8xx region.
 0x000A 0x0028 - 060BBADA <-- Plays a role in altering text output selection by clearing a bit in the 0x21F8xx region.
-0x000C 0x0030 - 060BBB94
-0x0052 0x0148 - 060BD8D4
-0x0053 0x014C - 060BD92C
-0x0054 0x0150 - 060BD96A   <-- voice playback? Yabause crashes on this.
-0x005A 0x0168 - 060BD56E
+0x000B 0x002C - 060BBB1C <-- Conditional True Jump in Script File
+0x000C 0x0030 - 060BBB94 <-- Conditional False Jump in Script File
+0x0026                   <-- Called when entering/exiting dyne monument area
+0x0027                   <-- Called when entering/exiting cow shed
+0x002A                   <-- Called when entering/exiting dyne monument area
+0x002F 0x00BC - 060BD3BA <- Althena statue
+0x0031                   <-- Something to do with the cow in the shed?
+0x0032                   <-- Something to do with the cow in the shed?
+0x0038                   <-- Something to do with the cow in the shed?
+0x003E                   <-- Called when entering/exiting dyne monument area
+0x0045                   <-- Called when entering/exiting cow shed
+0x0047                   <-- Called when entering/exiting cow shed
+0x0052 0x0148 - 060BD8D4 <-- ?? Unknown - Blue haired boy at bottom of Burg ??
+0x0053 0x014C - 060BD92C <-- ?? Precedes voice playback ??
+0x0054 0x0150 - 060BD96A <-- voice playback? Yabause crashes on this.
+0x005A 0x0168 - 060BD56E <-- ?? Precedes call to 0x0053 ??
 
 Hex       Aruments
-0x0003    1 16-bit offset of where to go to next.  This offset is multipled by 4 and added to 0x260000
-
-
-0x000B    3 [Technically any # of args and is terminated by 0000, but i always see 3 so far]
-            Argument #1:  Word Offset to the offset value to potentially jump to.
-                          Place to jump: (Offset Byte Address = 0x260000 + 2*Arg1_WdOffset.  
-                          Now Read the wd at this address, mutiply by 2 and add to 0x260000.  This is where you jump to!)
-            Argument #2:  Bit offset from 0x21F800 to check (1 = jump file pointer to word offset, 0 = dont jump.  
-                          File pointer will move onto the subroutine that follows this one)
-            Argument #3:  0000  (Null terminator of subroutine)
-
-            Example of sequence when talking next to man next to bridge in Burg
-            #1: 0133, 0132, 0130, 012F, 012E
-            #2: 0020, 000B, 0009, 0007, 0003
-            #3: Always 0000 to signify end of arguments
-            Last one has an offset of where to jump to next in the file. 0x012E*2 = 0x025C
-            Value at 0x025C in the file is 0x26E6; 0x26E6*2 = 4DCC, the next offset
-
-Note: The 0x21F8xx region appears to hold state data for the current scene.
-
 
 
 0x0002    Variable.  Text data and text escape codes are located here.  Ends with the value 0xFFFF.
@@ -73,6 +62,11 @@ FFxx   0x60BAC20 - Second byte of FF is: 01-next box, 02 newline, 03 start new b
 RTS if no match with the above codes
 
 
+0x0003    1 16-bit offset of where to go to next.
+            Place to jump: (Offset Byte Address = 0x260000 + 2*Arg1_WdOffset.  
+            Now Read the wd at this address, mutiply by 2 and add to 0x260000.  This is where you jump to!
+
+
 0x0005    No argument.  Sets global end of script flag if 0x060F95A0 was previously set to 0.  Otherwise does something            else.  Havnet run across any actual usage yet, but by plugging in some values with the yabause debugger,
          It will perform the following:  
          (*0x060F95A0)--;
@@ -83,14 +77,55 @@ RTS if no match with the above codes
          If called repeatedly 0x060F95A0 eventually becomes 0 and then the rts at 060BB938 is called which results
          in the end of the script.
 
+0x0007    4 Argument #1:  Offset to use to jump if bottom option is selected.
+                          Otherwise the script sequence continues linearly past this portion.
+            Argument #2:  0000  (Null terminator)
+            Argument #3:  Text String Ending in FFFF  (Top Option)
+            Argument #4:  Text String Ending in FFFF  (Bottom Option)
+[Need to verify 0x0007 in debugger, this is mostly assumption]
 
-0x0009   2 [Technically any # of args and is terminated by 0000, but i always see 3 so far] ???
-         Argument #1:  Bit offset from 0x21F800 to set       ???
-         Argument #2:  0000  (Null terminator of subroutine) ???
+0x0009    2 Argument #1:  Bit offset from 0x21F800 to set
+            Argument #2:  0000  (Null terminator of subroutine)
 
-0x000A   2 [Technically any # of args and is terminated by 0000, but i always see 3 so far]
-         Argument #1:  Bit offset from 0x21F800 to clear
-         Argument #2:  0000  (Null terminator of subroutine)
+0x000A    2 Argument #1:  Bit offset from 0x21F800 to clear
+            Argument #2:  0000  (Null terminator of subroutine)
+
+0x000B    3 Argument #1:  Word Offset to the offset value to potentially jump to.
+                          Place to jump: (Offset Byte Address = 0x260000 + 2*Arg1_WdOffset.  
+                          Now Read the wd at this address, mutiply by 2 and add to 0x260000.  This is where you jump to!)
+            Argument #2:  Bit offset from 0x21F800 to check (1 = jump file pointer to word offset, 0 = dont jump.  
+                          File pointer will move onto the subroutine that follows this one)
+            Argument #3:  0000  (Null terminator of subroutine)
+
+            Example of sequence when talking next to man next to bridge in Burg
+            #1: 0133, 0132, 0130, 012F, 012E
+            #2: 0020, 000B, 0009, 0007, 0003
+            #3: Always 0000 to signify end of arguments
+            Last one has an offset of where to jump to next in the file. 0x012E*2 = 0x025C
+            Value at 0x025C in the file is 0x26E6; 0x26E6*2 = 4DCC, the next offset
+
+Note: The 0x21F8xx region appears to hold state data for the current scene.
+
+
+0x000C    3 Argument #1:  Word Offset to the offset value to potentially jump to.
+                          Place to jump: (Offset Byte Address = 0x260000 + 2*Arg1_WdOffset.  
+                          Now Read the wd at this address, mutiply by 2 and add to 0x260000.  This is where you jump to!)
+            Argument #2:  Bit offset from 0x21F800 to check (0 = jump file pointer to word offset, 1 = dont jump.  
+                          File pointer will move onto the subroutine that follows this one)
+            Argument #3:  0000  (Null terminator of subroutine)
+Note: This is just the opposite of 0x000B
+
+0x002F    No arguments. Related to Altena statue. Calls some routine then theres a green flash.
+          Probably just restores HP.  [Assumption, Did not verify with debugger]
+
+0x0053    No arguments. Not sure what this is for yet.
+
+0x005A    1 Argument #1:  Two bytes.  First byte is ???.  Second byte is ???
+          Not sure what this is for yet.
+
+0x0054    2 Argument #1:  ??
+            Argument #2:  ??
+          Seems to play sound samples.
 
 
 Global Variables
@@ -116,7 +151,7 @@ Global Variables
 60F9548
 
 =================================
-Subroutine  060BB830 (Called 1st) - Updates script pointer using next 16-bit argument
+Subroutine  060BB830 - Updates script pointer using next 16-bit argument
 =================================
 Increment script pointer (0x60F956C) by 2 bytes (1 Word location)
 Read the value at that location (Val#1a), which is a Word offset.  Then multiply by 2 (Val#1b) to get a Byte offset.
