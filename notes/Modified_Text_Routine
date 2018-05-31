@@ -1,0 +1,176 @@
+Description of prototype text draw routine that uses ascii instead of existing implementation
+
+Text draw routine - determines text or control characters, RAM entry point: 0x060BAA62
+The existing implementation expects a sequence of 16-bit big endian words.
+If the leftmost byte is >= 0xF0, a control code is represented, and the control code subroutine should be called.
+Otherwise, the number refers to a index into the decompressed font, located at 0x223000 in RAM.
+
+This alternative implementation uses 8-bit encoding for the font, as English does not require as large a subset of characters as japanese.  Control codes are kept as 16-bit for simplicity.  The script should be a mixed stream of 8-bit font data and 16-bit control codes.  This should save a significant amount of space, up to double.  The data itself will need to start and end on 16-bit boundaries.  If not ending on a 16-bit boundary, the final byte will be ignored.
+I used unused space previously occupied by Kanji in the decompressed font for the modified subroutine.
+
+The decompressed font is located in LoRAM between 0x220000 and 0x2272BF (about 28kB)
+Each character is 16x16 2bpp, which is 64 bytes.  23,376 / 64 = 459 characters
+We will be using ASCII.  This will allow the use of characters 0-127 (0x0-0x7F).
+Since space is a control code, 0x20 is reinterpreted as the control code for space by the code.
+Techncially 0x0 to 0xEF could be used (0xF0-0xFF will be seen as the first byte of a control code).
+
+To make things easy, the below code will start at character #200
+Offset into font = 200*64 = 12800 (0x3200)
+So Location 0x223200
+
+
+HiRAM Modifications (will need to modify corresponding file location in 0.bin)
+        060BAA3C D501   mov.l @(1x4,PC), r5
+        060BAA3E 452B   jmp @r5
+        060BAA40 0009   nop
+        060BAA42 0000
+        060BAA44 0022   DATA
+        060BAA48 3200   DATA   
+        060BAA4A 0000     <-- I zero filled this stuff for debugging, no real need to
+        060BAA4C 0000
+        060BAA4E 0000
+        060BAA50 0000
+        060BAA52 0000
+        ...
+L5      060BAA6A 7E02 add #0x02, r14 
+        060BAA6C D304 r3 = 0x60F956C  <-- set equal to file pointer
+        060BAA6E 23E2 r14 = *r3       <-- read in the 32-bit file pointer into r14
+        060BAA70 ...
+
+
+LoRAM Modifications (will need to modify corresponding file location in system.bin)
+                    (Font starts at file offset 0x16FC0 in the original release)
+                    (Requires decompressing font, inserting @ location 200, recompressing, reinserting)
+        -----------------------------------------------
+        -- Read in a byte (Need to perform aligned access)
+        --   IF((addr & 0x1) == 1)
+        --     read rightmost byte
+        --   ELSE
+        --     read word, shift to the right 8 bits
+        --   addr++
+        -----------------------------------------------
+L0	    00223200 E501	mov #0x01, r5   <-- r5 = 1
+        00223202 25E9   AND R14, R5     <-- r5 &= r14
+        00223204 4515   cmp/pl r5       <-- r5 > 0? (Equals 1)
+        00223206 8B08   bf T1
+
+        -- Read Rightmost Byte of Word
+        00223208 4E10   DT R14          <-- r14-=1  Prepares r14 to read aligned
+        0022320A E5FF	mov #0xFF, r5   <-- r5 = 0xFF
+        0022320C 655C	extu.b r5, r5   <-- extend
+        0022320E 62E1	mov.w @r14, r2  <-- r2 holds word at r14
+        00223210 622D	extu.w r2, r2   <-- extend
+        00223212 2259   AND R5, R2     <-- r2 &= r5
+        00223214 7E02   add #0x02, r14  <-- Incr by 1 location past read
+        00223216 A004   bra T2
+        00223218 0009   nop   
+
+        -- Read Leftmost Byte of Word
+T1      0022321A 62E1	mov.w @r14, r2  <-- r2 holds word at r14
+      	0022321C 622D	extu.w r2, r2   <-- extend
+        0022321E 4219	shlr8 r2        <-- r2 holds leftmost byte at r14
+        00223220 7E01   add #0x01, r14  <-- Incr by 1 location past read
+
+        -- Check to see if the character is a space, modify to ctrl code if so
+T2	    00223222 E520   mov.l #0x20, r5
+      	00223224 3250   cmp/eq r5,r2
+    	 00223226 890D   bt [L1a]
+
+        -- Check to see if the character is a control code
+        00223228 E5F0   mov.l #0xF0, r5 <-- add unsigned byte extend
+        0022322A 655C   extu.b r5, r5
+      	0022322C 3253   cmp/ge r5,r2
+	      0022322E 890C   bt [L1b]
+
+        -- Draw 1st character
+        00223230 E501	mov #0x01, r5   <-- r5 = 1
+	      00223232 4A0B	jsr @r10        <-- Jump to SUBROUTINE 06082D84 
+	      00223234 6423   mov r2, r4
+	      00223236 0009	nop
+	      00223238 6490	mov.b @r9, r4
+        0022323A D516   mov.l #0x060BAB66, r5
+        0022323C 450B   jsr @r5         <-- Draw the character
+        0022323E 644C   extu.b r4, r4
+
+        -- Jump back to start of character read routine
+L4      00223240 AFDE   bra 0x223200  (Branch to L0)     
+        00223242 0009   nop
+
+        -- This is a translated space character
+        -- Set default pointer increment to 1 byte
+        -- Modify the space character
+L1a	    00223244 9229   mov.w #0xF90A, r2
+        00223246 622D   extu.w r2, r2
+        00223248 A013   bra L2    
+
+        -- Save off the current byte in r2 to r4, then
+        -- Read in next byte to get the control code
+L1b     0022324A 6423   mov r2, r4
+        0022324C E501	mov #0x01, r5   <-- r5 = 1
+        0022324E 25E9   AND R14, R5     <-- r5 &= r14
+        00223250 4515   cmp/pl r5       <-- r5 > 0? (Equals 1)
+        00223252 8B08   bf T1a
+
+        -- Read Rightmost Byte to obtain 2nd part of control word
+        00223254 4E10   DT R14          <-- r14-=1  Prepares r14 to read aligned
+        00223256 E5FF	mov #0xFF, r5   <-- r5 = 0xFF
+        00223258 655C	extu.b r5, r5   <-- extend
+        0022325A 62E1	mov.w @r14, r2  <-- r2 holds word at r14
+        0022325C 622D	extu.w r2, r2   <-- extend
+        0022325E 2259   AND R5, R2     <-- r2 &= r5
+        00223260 7E02   add #0x02, r14  <-- Incr by 1 location past read
+        00223262 A004   bra T2a
+        00223264 0009   nop
+
+        -- Read Leftmost Byte to obtain 2nd part of control word
+T1a     00223266 62E1	mov.w @r14, r2  <-- r2 holds word at r14
+  	    00223268 622D	extu.w r2, r2   <-- extend
+        0022326A 4219	shlr8 r2        <-- r2 holds leftmost byte at r14
+        0022326C 7E01   add #0x01, r14  <-- Incr by 1 location past read
+
+        -- Modify r2 to be a control code
+        -- Shift r4 to the left by 8, then OR with r2 and store result in r2
+T2a     0022326E 4418   SHLL8 R4       
+        00223270 224B   OR R4,R2
+
+        -- Write the control code to memory, copy addr to r4
+L2      00223272 D406 mov.l @(disp*2,PC),r4      <-- load r4 with address of ctrl code   
+        00223274 2421 mov.w r2, @r4               <-- copy r2 data to location r4
+
+        -- Draw Control Code
+        00223276 D509   mov.l #0x060BABF8, r5 
+        00223278 450B   jsr @r5   <-- SUBROUTINE FOR CONTROL CODES
+        0022327A 0009   nop       <-- moved pointer to control code word into r4 for use in the subroutine above
+
+        -- Check for end of text
+L3      0022327C 32B0   cmp/eq r11, r2  <-- r11 equals 0xFFFF
+        0022327E 8BDF   bf [L4]         <-- Branch if not 0xFFFF 
+
+        -- It is the end of the text
+        -- Make sure we are word aligned
+        00223280 E501	mov #0x01, r5   <-- r5 = 1
+        00223282 25E9   AND R14, R5     <-- r5 &= r14
+        00223284 3E5C   ADD R5, R14     <-- r14 += r5
+        00223286 D506   mov.l #0x060BAA6C   r5  [L5]
+        00223288 452B   JMP @r5
+        0022328A 0009   nop
+
+DATA    0022328C 0022 LW_ADDR
+DATA    0022328E 3294 LW_ADDR    
+DATA    00223290 0000 WD_STORE
+DATA    00223292 0000 UNUSED
+DATA    00223294 060B
+DATA    00223296 AB66
+DATA    00223298 0000
+DATA    0022329A F90A
+DATA    0022329C 060B
+DATA    0022329E ABF8
+DATA    002232A0 060B
+DATA    002232A2 AA6C
+
+
+For anyone wanting to quickly paste the LoRAM part into RAM using Yabause:
+Starting @ 0x223200
+E50125E945158B084E10E5FF655C62E1622D22597E02A004000962E1622D42197E01E5203250890DE5F0655C3253890CE5014A0B642300096490D516450B644CAFDE00099229622DA0136423E50125E945158B084E10E5FF655C62E1622D22597E02A004000962E1622D42197E014418224BD4062421D509450B000932B08BDFE50125E93E5CD506452B00090022329000000000060BAB660000F90A060BABF8060BAA6C
+
+Note dialog will look a bit messy.  A few people you talk to will crash the emulator.  Due to the fact that the script is now a stream of bytes/words, invalid control codes can spring up.  Eventual modification of the script will fix this.
