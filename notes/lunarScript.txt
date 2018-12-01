@@ -2,21 +2,20 @@ A given Textxxxx.DAT is copied directly into memory location 0x260000 when the c
 
 The first 0x800 bytes of these files consist of a sequence of 16-bit pointers.  Each pointer points to the beginning of a sequence of actions that should occur.  These sequences occur later on in the text file and may in turn contain pointers that jump to other sections of the file.  If a 16-bit pointer is 0x0000, obviously it is not used by the game.
 
-When talking to a person or when an event occurs, a value is read from someplace (i havent bothered to locate the origin 
-of this because I assume it is not relevant for translating, its more game-mechanic related).
-This value is then multiplied by 2 to obtain the offset into Textxxxx.DAT for the Top-Level pointer.
-This happens around 0x060BA1FC when running the code.
+When talking to a person or when an event occurs, a value is read from someplace (i havent bothered to locate the origin  of this because I assume it is not relevant for translating, its more game-mechanic related). This value is then multiplied by 2 to obtain the offset into Textxxxx.DAT for the Top-Level pointer. This happens around 0x060BA1FC when running the code.
 
-The value of the pointer is then read, and 0x260000 is added to it to obtain the offset into ram of a particular sequence 
-of events to be executed.
+The value of the pointer is then read, and 0x260000 is added to it to obtain the offset into ram of a particular sequence  of events to be executed.
+
+The focus of this document is for text dump/insertion.  Which is why i dont bother to fully trace everything.
 
 Sequence Format:
-Subroutine, arguments, Subroutine, arguments, Final Subroutine, arguments
+Subroutine, arguments, Subroutine, arguments, ..., Final Subroutine, arguments
 At the end of each executed subroutine, a global variable is checked to see if it is the final one to be run.
 
 Sequences contain subroutines, the addresses of which are hard-coded at locations 060F1D10 to 060f1eff
-They are referenced by a 16-bit number.  Here are a few:
-Hex     x4    Address
+They are referenced by a 16-bit number.  Here is a high level summary:
+
+Hex     x4      Address
 0x0002 0x0008 - 060BA9C0 <-- Text Drawing subroutine
 0x0003 0x000C - 060BB830 <-- Unconditional Jump in Script File
 0x0005 0x0014 - 060BB92A <-- Subroutine usually called last.  Seems to signify end of the current script sequence read.
@@ -25,20 +24,48 @@ Hex     x4    Address
 0x000A 0x0028 - 060BBADA <-- Plays a role in altering text output selection by clearing a bit in the 0x21F8xx region.
 0x000B 0x002C - 060BBB1C <-- Conditional True Jump in Script File
 0x000C 0x0030 - 060BBB94 <-- Conditional False Jump in Script File
-0x0026                   <-- Called when entering/exiting dyne monument area
-0x0027                   <-- Called when entering/exiting cow shed
-0x002A                   <-- Called when entering/exiting dyne monument area
-0x002F 0x00BC - 060BD3BA <- Althena statue
-0x0031                   <-- Something to do with the cow in the shed?
-0x0032                   <-- Something to do with the cow in the shed?
-0x0038                   <-- Something to do with the cow in the shed?
-0x003E                   <-- Called when entering/exiting dyne monument area
-0x0045                   <-- Called when entering/exiting cow shed
-0x0047                   <-- Called when entering/exiting cow shed
-0x0052 0x0148 - 060BD8D4 <-- ?? Unknown - Blue haired boy at bottom of Burg ??
-0x0053 0x014C - 060BD92C <-- ?? Precedes voice playback ??
-0x0054 0x0150 - 060BD96A <-- voice playback? Yabause crashes on this.
+0x0010 0x0040 -          <-- Unconditional Jump in Script File.  Seems identical to 0x0003.
+0x0018 0x0060 -
+0x001A 0x0068 -
+0x001F 0x007C -          <-- Obtain an item (argument specifies the item).
+0x0021 0x0084 -
+0x0023 0x008C -
+0x0025 0x0094 -
+0x0026 0x0098 -          <-- Called when entering/exiting areas
+0x0027 0x009C -          <-- Called when entering/exiting cow shed
+0x0029 0x00A4 -
+0x002A 0x00A8 -          <-- Called when entering/exiting dyne monument area
+0x002C 0x00B0 -
+0x002D 0x00B4 -
+0x002E 0x00B8 -          <-- Displays a shop menu, shop depends on argument.
+0x002F 0x00BC - 060BD3BA <-- Althena statue, restores HP, flashes screen.
+0x0030 0x00C0 -
+0x0031 0x00C4 -          <-- Something to do with the cow in the shed?
+0x0032 0x00C8 -          <-- Something to do with the cow in the shed?
+0x0033 0x00CC -
+0x0034 0x00D0 -
+0x0038 0x00E0 -          <-- Something to do with the cow in the shed?
+0x003A 0x00E8 -
+0x003C 0x00F0 -
+0x003D 0x00F4 -
+0x003E 0x00F8 -          <-- Called when entering/exiting dyne monument area
+0x003F 0x00FC -
+0x0040 0x0100 -
+0x0041 0x0104 -
+0x0045 0x0114 -          <-- Called when entering/exiting cow shed
+0x0047 0x011C -          <-- Called when entering/exiting cow shed
+0x0052 0x0148 - 060BD8D4 <-- ?? Unknown - Blue haired boy at bottom of Burg ??  1 short argument
+0x0053 0x014C - 060BD92C <-- ?? Precedes voice playback ??  No arguments
+0x0054 0x0150 - 060BD96A <-- voice playback? Yabause crashes on this.  No Arguments
 0x005A 0x0168 - 060BD56E <-- ?? Precedes call to 0x0053 ??
+
+
+
+
+
+Detailed Summary (Mostly Traced)
+=================================
+
 
 Hex       Aruments
 
@@ -82,7 +109,6 @@ RTS if no match with the above codes
             Argument #2:  0000  (Null terminator)
             Argument #3:  Text String Ending in FFFF  (Top Option)
             Argument #4:  Text String Ending in FFFF  (Bottom Option)
-[Need to verify 0x0007 in debugger, this is mostly assumption]
 
 0x0009    2 Argument #1:  Bit offset from 0x21F800 to set
             Argument #2:  0000  (Null terminator of subroutine)
@@ -115,17 +141,112 @@ Note: The 0x21F8xx region appears to hold state data for the current scene.
             Argument #3:  0000  (Null terminator of subroutine)
 Note: This is just the opposite of 0x000B
 
+
+
+
+
+Partially Verified By Trace
+===============================
+0x0008    Two short arguments. (Or possibly argument list terminated with 0x0000 ?)
+
+0x0010   (Called when Entering cave)  This is a jump
+  0010  03E6  (Then jumped to 0x267B12)
+  Formula:  0x03E6*2 = 0x7CC
+            Then value at 0x7CC is read, which is 0x3D89
+            Next location is 0x260000 + (0x3D89*2) = 0x267B12
+            Appears to be the same thing as control code 0x0003
+
+0x0018  One short argument.
+
+0x001A  Two short arguments.  (Something to do with items in chests?)
+001A 1571 0000
+001A 1570 0000
+
+060bc22c
+
+267236
+0x001F  One short argument, argument is item obtained (1 byte) followed by 0x00.
+
+0x001F  0100 (one short argument)  Given a knife (text shows up top)
+  001F  1900 (one short argument)  Given a sling (text shows up top)
+  001F  8600 (one short arg)  Given fire ring
+  001F  A400  chimera wing
+  001F  9C00  healing herb
+  001F  9E00  starlight
+  001F  A000  angel tear
+
+0x0021  Two short args
+
+0x0023    One short argument.
+
+0x0025    One short argument.
+  0025 1400
+
+0x0026    3 arguments, or list terminating in ff00 ???
+  0026 0006 0401 ff00  (New scene)
+       0003 0601 ff00
+
+0x0027    If the first byte is zero, there are 6 arguments.
+          Otherwise there is 1 argument
+
+0x0029    One short argument.
+
+0x002A    One short argument.
+
+0x002C    Two short arguments.
+
+0x002D    Two short arguments.  (Or Possibly argument list terminated with 0xFF00 ?)  Maybe selects a movie to play, not sure?
+
+0x002E    Two short arguments.
+  002E 0100  Weapon Shop
+  002E 0200  Potion Shop
+
 0x002F    No arguments. Related to Altena statue. Calls some routine then theres a green flash.
           Probably just restores HP.  [Assumption, Did not verify with debugger]
 
-0x0053    No arguments. Not sure what this is for yet.
+0x0030    One short argument.
 
-0x005A    1 Argument #1:  Two bytes.  First byte is ???.  Second byte is ???
+0x0031    One short argument.
+
+0x0032    No arguments.
+
+0x0033    One short argument.  (Or Possibly argument list terminated with 0x0000 ?)
+
+0x0034    Appears to be 7 arg right before the first ramus movie? Otherwise 1 arg. Need to investigate further.
+  0034    0B07 0111 3600 0100 0000 FF08 0500
+  0034    0771
+  0034    076E
+  0034    0715
+
+
+0x0038    Variable number of short arguments.  Terminates in 0xF900  (or xxF9).
+
+0x003A    No arguments.
+
+0x003C    No arguments.
+
+0x003D    Argument list terminated with 0xFFFF
+
+0x003E    Two short arguments.
+
+0x003F    No arguments.
+
+0x0040    No arguments.
+
+0x0041    One short argument.
+
+0x0045    One short argument. (Called when Entering/Exiting houses)
+
+0x0047    One short argument. (Called when Entering/Exiting houses)
+
+0x0052    One short argument.
+
+0x0053    No arguments.
+
+0x0054    No arguments.
+
+0x005A    1 Short Argument split into Two bytes.  First byte is ???.  Second byte is ???
           Not sure what this is for yet.
-
-0x0054    2 Argument #1:  ??
-            Argument #2:  ??
-          Seems to play sound samples.
 
 
 Global Variables

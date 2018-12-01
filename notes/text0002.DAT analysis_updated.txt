@@ -1,12 +1,15 @@
 Text0002.DAT - Located in RAM at 0x260000 when in Burg
 ===============
 
+space to insert debug breakpoint.  + to increase opacity
+
 
 Breakpoint Strategy
 =====================
 0x060BA2A0 <-- R0 holds file read address
 0x060BA2A2 <-- R0 holds subroutine hex identifier
 0x060BA2A8 <-- R3 holds address of subroutine.
+
 
 
 Everything below is in text0002.dat unless noted otherwise
@@ -174,7 +177,10 @@ If the bottom is selected, then jump, otherwise continue onward in execution.
 0007 011B 0000
 0399 0189 01FD 0132 014E 0166 006F 018C F90A 001D 001C 0012 FFFF
 01D8 034A 00CE 000D 0180 01CF 0145 0199 0012 0023 0014 0062 0134 FFFF
-0x264E06 0002 ...
+
+Jump:  Read location (0x260000+(0x011B * 2)) = 0x260236
+       0x260236 = 0x2404
+       Jump Location = (0x260000+(0x2404 * 2)) = 0x264808
 
 =========
 Selection
@@ -198,9 +204,9 @@ No parameters
 File read address:         2648C2                                 264798
 Subroutine hex identifier: 0054
 Address of subroutine    : 60BD96A
-Data 0054 005A FB01   <-- Sings a song.
+Data 0054                     <-- Sings a song.
+     005A FB01   
 
-HANGS
 
 
 Bottom left blue haired girl
@@ -256,6 +262,8 @@ Address of subroutine    : 60BB92A
 
 Walking on Bridge toward alex's home (automatically called when you walk on it)
 ======================================= 
+261094 0x000B   <-- isntance of 5 not being final
+26109C 0x000B
 B, 5
 
 
@@ -263,12 +271,19 @@ Shed (automatically called on entering or leaving)
 ================================
 0x27, 0x47, 0x45, 0x5
 
+261C8A 0027
+
 
 Cow in shed
 ============
 0x31, 0x38, 0x32, 0x2, 0x5
 
 
+261C98 0031 0093
+261C9C 0038 01F6 1EF9 
+261CA2 0032
+261CA4 0002
+261CEE 0005
 
 Old man next to alex's home
 -----------------------------
@@ -300,9 +315,14 @@ Bottom Left House
 House Chicken - 0x00E8, 0x2000
 1st floor old woman on right - 0x00F6, 0x2008
 1st floor old man - 0x00D8, 0x1FE0
-2nd floor treasure chest does not hit the breakpoint. Red chest is one of those cant open till later.  Probably a hardcoded Nall text somewhere.
+
+2nd floor treasure chest does not hit the breakpoint. Red chest is one of those cant open till later.  Probably a hardcoded Nall text somewhere.  0x06001FA8 is where this text is taken from?
+
+????????????F64B FF00 FF03 FFFF
+
 2nd floor cat 0x00E0, 0x1FF0
 2nd floor Ramus - 0x00DA, 0x1FE4
+
 
 
 Weapons shop
@@ -362,3 +382,82 @@ UPSTAIRS CHESTS IN CW ORDER - These all seem to be 0x0B coded events of some sor
 0x0640, 0xCB18
 0x0646, 0xCB54
 
+
+
+0x261B3A
+
+Enter
+House 0x0027 0301 
+      0x0047 0F01
+      0x0045 1900
+      0x0005
+
+Exit 
+House 0x0027 1401
+        0047 0801
+        0045 1900
+        0005
+
+Top of house yellow haired boy
+        0053
+        002C 0202 3000
+        0054            (shake)
+        0002 Text
+        0033 0000
+        0005
+
+0008 01F5 0000
+0002  Text
+0052 0800
+0053 
+002C 0202 3000
+0054
+0002 text
+0033 0000
+0005
+
+0x2609BC
+Enter luna area for first time:
+0026 ???
+
+Text0001.dat
+0x26089E
+0x003E 2706 0000
+0x002A 1900
+0x000B 03E7 0115 0000
+0x0002 text
+0x0009 0115 0000
+0x0005
+
+Then:
+0x260A5A
+0x003C  
+0x0038 01F0 01F5 03F1 01F4 00FD 0000 F900
+0x0038 00F5 03F4 00FD 0000 F900 
+0x0032
+0x003D 0003 FFFF
+0x0038 01F4 00F3 0000 F900 
+0x0038 00F4 00F3 0000 F900
+0x0032
+0x0029 6400  (Up and fade to black)
+0x003D 0003 FFFF
+0x002D 0301 FF00            MOVIE
+0x003F 
+0x0023 0006 
+0x0027 0000 0000  0000 2700 4D14 0E04 0000
+0x003A 
+0040 
+0038 01F0 01F5 06F7 .. F900
+
+0052 2b00
+003D 0000 0003 FFFF
+002A 6400
+TEXT
+0053
+0031 0083
+002C 0101 1000 
+0018 0100 
+003F 
+
+Offset trigger 060BA204 breakpoint.  Read r4
+Offsets:  6C, 
