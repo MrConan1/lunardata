@@ -1,12 +1,12 @@
 A given Textxxxx.DAT is copied directly into memory location 0x260000 when the corresponding scene is loaded.
 
-The first 0x800 bytes of these files consist of a sequence of 16-bit pointers.  Each pointer points to the beginning of a sequence of actions that should occur.  These sequences occur later on in the text file and may in turn contain pointers that jump to other sections of the file.  If a 16-bit pointer is 0x0000, obviously it is not used by the game.
+The first 0x800 bytes of these files consist of a sequence of 16-bit pointers (Up to 1024).  Each pointer points to the beginning of a sequence of actions that should occur.  These sequences occur later on in the text file and may in turn contain pointers that jump to other sections of the file.  If a 16-bit pointer is 0x0000, obviously it is not used by the game.  Some pointers are invalid in the files, they extend beyond 64kB (0xFFFF).  This is a limitation on the Saturn versions as there is something else stored in that memory region in the game.  The iOS version does not appear to have this limitation.
 
-When talking to a person or when an event occurs, a value is read from someplace (i havent bothered to locate the origin  of this because I assume it is not relevant for translating, its more game-mechanic related). This value is then multiplied by 2 to obtain the offset into Textxxxx.DAT for the Top-Level pointer. This happens around 0x060BA1FC when running the code.
+When talking to a person or when an event occurs, a value is read from someplace (i havent bothered to locate the origin  of this because I assume it is not relevant for translating, its more game-mechanic related). This value is then multiplied by 2 to obtain the offset into Textxxxx.DAT for the Top-Level pointer. This happens around 0x060BA1FC when running the SSS Saturn game.
 
 The value of the pointer is then read, and 0x260000 is added to it to obtain the offset into ram of a particular sequence  of events to be executed.
 
-The focus of this document is for text dump/insertion.  Which is why i dont bother to fully trace everything.
+The focus of this document is for text dump/insertion.  (Which is why i dont bother to fully trace everything.)
 
 Sequence Format:
 Subroutine, arguments, Subroutine, arguments, ..., Final Subroutine, arguments
@@ -18,27 +18,31 @@ They are referenced by a 16-bit number.  Here is a high level summary:
 Hex     x4      Address
 0x0002 0x0008 - 060BA9C0 <-- Text Drawing subroutine
 0x0003 0x000C - 060BB830 <-- Unconditional Jump in Script File
+0x0004 0x0010 -          <-- Unconditional Jump in Script File
 0x0005 0x0014 - 060BB92A <-- Subroutine usually called last.  Seems to signify end of the current script sequence read.
 0x0007 0x001C - 060BB986 <-- Select between 2 options.
+0x0008                   <-- Another flag like 9 ???
 0x0009 0x0024 - 060BBAA0 <-- Plays a role in altering text output selection by setting a bit in the 0x21F8xx region.
 0x000A 0x0028 - 060BBADA <-- Plays a role in altering text output selection by clearing a bit in the 0x21F8xx region.
 0x000B 0x002C - 060BBB1C <-- Conditional True Jump in Script File
 0x000C 0x0030 - 060BBB94 <-- Conditional False Jump in Script File
-0x0010 0x0040 -          <-- Unconditional Jump in Script File.  Seems identical to 0x0003.
+0x0010 0x0040 -          <-- Conditional Jump in Script File with byte parameters.
+0x0011                   <-- Jump in Script File of some sort.
+0x0016                   <-- Conditional Jump in Script File with byte parameters.
 0x0018 0x0060 -
 0x001A 0x0068 -
 0x001F 0x007C -          <-- Obtain an item (argument specifies the item).
 0x0021 0x0084 -
 0x0023 0x008C -
 0x0025 0x0094 -
-0x0026 0x0098 -          <-- Called when entering/exiting areas
+0x0026 0x0098 -          <-- Called when entering/exiting areas.  Has something to do with loading the start pointer for newly loaded TEXTxxx.DAT files
 0x0027 0x009C -          <-- Called when entering/exiting cow shed
 0x0029 0x00A4 -
 0x002A 0x00A8 -          <-- Called when entering/exiting dyne monument area
 0x002C 0x00B0 -
-0x002D 0x00B4 -
+0x002D 0x00B4 -          <-- Plays one of the movies.  First argument byte identifies the movie to be played.
 0x002E 0x00B8 -          <-- Displays a shop menu, shop depends on argument.
-0x002F 0x00BC - 060BD3BA <-- Althena statue, restores HP, flashes screen.
+0x002F 0x00BC - 060BD3BA <-- Restores HP, flashes screen (For example, Althena statue).
 0x0030 0x00C0 -
 0x0031 0x00C4 -          <-- Something to do with the cow in the shed?
 0x0032 0x00C8 -          <-- Something to do with the cow in the shed?
@@ -52,13 +56,14 @@ Hex     x4      Address
 0x003F 0x00FC -
 0x0040 0x0100 -
 0x0041 0x0104 -
+0x0042 0x0108 -          <-- Unconditional Jump or End script read
 0x0045 0x0114 -          <-- Called when entering/exiting cow shed
 0x0047 0x011C -          <-- Called when entering/exiting cow shed
 0x0052 0x0148 - 060BD8D4 <-- ?? Unknown - Blue haired boy at bottom of Burg ??  1 short argument
 0x0053 0x014C - 060BD92C <-- ?? Precedes voice playback ??  No arguments
 0x0054 0x0150 - 060BD96A <-- voice playback? Yabause crashes on this.  No Arguments
 0x005A 0x0168 - 060BD56E <-- ?? Precedes call to 0x0053 ??
-
+0x005D                   <-- Not in SSS, Present in SSSC
 
 
 
@@ -74,19 +79,20 @@ Hex       Aruments
 Esc
 Code   Branch Target Address
 ===============================
-F0xx   0x60BAE6E - 
+F0xx   0x60BAE6E -  ???
 F080   0x60BAE6E - Not sure how this could ever execute the way the code is written.
-F1xx   0x60BAE6E - 
-F4xx   0x60BAE6E - 
-F5xx   0x60BAE6E -  
-F6xx   0x60BAE6E - 
-F8xx   0x60BAE14 - 
+F1xx   0x60BAE6E - These map to specific kanji, linked to the lower byte.  Used in menus.
+F4xx   0x60BAE6E -  ???
+F5xx   0x60BAE6E -  ???
+F6xx   0x60BAE6E - Prints kanji to a text box (kanji printed depends on lower byte), screen fades to black, and you appear in an area.  So likely tied to something with the current scenario, otherwise you end up in the wrong place after the screen fades.  Used in menus.
+F8xx   0x60BAE14 - Pause between text printing.  The lower byte dicates the pause.  Eyeballing it, it seems like full scale, 0xFF is about 4 seconds, so something like 15ms per digit.
 F9xx   0x60BADAA - Space, 2nd byte is # pixels
-FAxx   0x60BAE3A - Character Portrait
-FBxx   0x60BAE54 - 
-FCxx   0x60BADC4 - 
-FFxx   0x60BAC20 - Second byte of FF is: 01-next box, 02 newline, 03 start new box, FF end of dialog
-RTS if no match with the above codes
+FAxx   0x60BAE3A - Character Portrait (Left side). Mapping depends on scene.  Portrait code of FA00 removes.
+FBxx   0x60BAE54 - Character Portrait (Right side) Mapping depends on scene.  Portrait code of FB00 removes.
+FCxx   0x60BADC4 - FC03 Called before displaying a location name (Burg Village), FC00 follows, then FFFF
+FFxx   0x60BAC20 - Second byte of FF is: 00-wait for button press 01-clear and reset text box cursor, 02 newline, 03 close dialog box and any portraits, FF end of dialog
+
+RTS performed if no match with the above codes
 
 
 0x0003    1 16-bit offset of where to go to next.
